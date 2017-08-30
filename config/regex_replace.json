@@ -1,0 +1,18 @@
+[
+    {"regex": " +", "replace": " "},
+    {"regex": "’", "replace": "'"},
+    {"regex": "‘", "replace": "'"},
+    {"regex": " +'", "replace": "'"},
+    {"regex": "([^ ])!", "replace": "\\1 !"},
+    {"regex": "([^ ])\\?", "replace": "\\1 ?"},
+    {"regex": "<i>-</i>", "replace": "-"},
+    {"regex": "\\W<i>([A-Za-z0-9]+\\.\\.\\.)</i>", "replace": "\\1"},
+    {"regex": "I'", "replace": "l'"},
+    {"regex": "^Gomme", "replace": "Comme"},
+    {"regex": "\\nGomme", "replace": "\\nComme"},
+    {"regex": "_", "replace": ""},
+    {"regex": "^II ", "replace": "Il "},
+    {"regex": "\\|", "replace": "l"},
+    {"regex": "^A ", "replace": "À "},
+    {"regex": "\\nA ", "replace": "\\nÀ "}
+]

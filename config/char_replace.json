@@ -1,0 +1,9 @@
+[
+    {"char": "-", "replace": ""},
+    {"char": "I", "replace": "l"},
+    {"char": "e", "replace": "é"},
+    {"char": "e", "replace": "ê"},
+    {"char": "e", "replace": "è"},
+    {"char": "a", "replace": "à"},
+    {"char": "G", "replace": "C"}
+]
