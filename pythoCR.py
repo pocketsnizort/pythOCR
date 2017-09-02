@@ -15,7 +15,7 @@ from tqdm import tqdm
 # from userconfig.userconfig import regex_replace, chars_to_try_to_replace, auto_same_sub_threshold, same_sub_threshold
 from multiprocessing.dummy import Pool as ThreadPool 
 
-version = "1.81"
+version = "1.82"
 
 media_ext = {".mp4", ".mkv", ".avi"}
 
@@ -340,18 +340,25 @@ def ocr_only(path, outputdir):
     
     # Generating sub images from screenchange log
     frames = get_scene(os.path.splitext(screenlog_dir + "/" + os.path.basename(path))[0] + ".log")
-    # logging.debug("frames to extract are: %s" % str(frames))
-    ffmpeg_cmd = "ffmpeg -loglevel error -i \"%s\" -vf select='%s',crop='h=ih/2:y=ih/2' -vsync 0 \"%s/%%0%dd.jpg\"" % (path, "+".join(["eq(n\,%s)" % scene[0] for scene in frames]), screen_dir, len(str(len(frames))))
-    # logging.debug("ffmepg command is: %s" % ffmpeg_cmd)
-    logging.info("Generating images")
-    subprocess.call(shlex.split(ffmpeg_cmd), stdout=subprocess.DEVNULL)
+    
 
     if alt_exists:
+        # logging.debug("frames to extract are: %s" % str(frames))
+        ffmpeg_cmd = "ffmpeg -loglevel error -i \"%s\" -vf select='%s',crop='h=ih/2:y=ih/2' -vsync 0 \"%s/%%0%dd.jpg\"" % (path, "+".join(["eq(n\,%s)" % scene[0] for scene in frames]), screen_dir, len(str(len(frames))))
+        # logging.debug("ffmepg command is: %s" % ffmpeg_cmd)
+        logging.info("Generating images")
+        subprocess.call(shlex.split(ffmpeg_cmd), stdout=subprocess.DEVNULL)
         frames_alt = get_scene(os.path.splitext(screenlog_dir + "/" + os.path.basename(path))[0] + ".alt.log")
         # logging.debug("frames alt to extract are: %s" % str(frames_alt))
         ffmpeg_cmd = "ffmpeg -loglevel error -i \"%s\" -vf select='%s',crop='h=ih/2:y=0' -vsync 0 \"%s/%%0%dd_alt.jpg\"" % (path, "+".join(["eq(n\,%s)" % scene[0] for scene in frames_alt]), screen_dir, len(str(len(frames_alt))))
         # logging.debug("ffmepg alt command is: %s" % ffmpeg_cmd)
         logging.info("Generating alt images")
+        subprocess.call(shlex.split(ffmpeg_cmd), stdout=subprocess.DEVNULL)
+    else:
+        # logging.debug("frames to extract are: %s" % str(frames))
+        ffmpeg_cmd = "ffmpeg -loglevel error -i \"%s\" -vf select='%s' -vsync 0 \"%s/%%0%dd.jpg\"" % (path, "+".join(["eq(n\,%s)" % scene[0] for scene in frames]), screen_dir, len(str(len(frames))))
+        # logging.debug("ffmepg command is: %s" % ffmpeg_cmd)
+        logging.info("Generating images")
         subprocess.call(shlex.split(ffmpeg_cmd), stdout=subprocess.DEVNULL)
         
     # Parallele processing of sub images (OCR + converting to text + text fixing)
