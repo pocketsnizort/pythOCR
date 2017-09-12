@@ -15,7 +15,7 @@ from tqdm import tqdm
 # from userconfig.userconfig import regex_replace, chars_to_try_to_replace, auto_same_sub_threshold, same_sub_threshold
 from multiprocessing.dummy import Pool as ThreadPool 
 
-version = "1.82"
+version = "1.83"
 
 media_ext = {".mp4", ".mkv", ".avi"}
 
@@ -59,7 +59,8 @@ def user_input_replace_confirm(word, substitutes, fullstring):
     msg = "Dialogue: \"%s\"\nBad word found, please select a substitute or enter [s] to skip:\n" % strip_tags(displaystring)
     msg += ", ".join([("\"%s\"[" + Fore.BLUE + Style.BRIGHT + "%d" + Style.RESET_ALL + "]") % (show_diff(difflib.SequenceMatcher(a=word, b=substitute[0])), idx + 1) for idx, substitute in enumerate(substitutes)])
     while True:
-        user_input = input(msg)
+        print(msg)
+        user_input = input()
         if user_input.lower() == "s":
             return word
         elif user_input == "":
@@ -80,10 +81,10 @@ def extreme_try_word_without_char(word, fullstring, chars_to_try_to_replace, enc
     if enchant_dict.check(word):
         return word
     else:
-        substitutes = [word]
+        substitutes = {word}
         for char, replacement in chars_to_try_to_replace:
             raw_subst = [filler(word, char, replacement) for word in substitutes]
-            substitutes = [subst for sublist in raw_subst for subst in sublist]
+            substitutes = set([subst for sublist in raw_subst for subst in sublist])
         # Get a list of acceptable substitutes with their corresponding distance
         substitutes = [(substitute, difflib.SequenceMatcher(None, word, substitute).ratio()) for substitute in list(set(substitutes)) if enchant_dict.check(substitute)]
         if len(substitutes) > 0:
@@ -267,14 +268,15 @@ def check_sub_data(sub_data):
             a = sub_data[idx][0].replace('\n', "")
             b = sub_data[idx + 1][0].replace('\n', "")
             b = show_diff(difflib.SequenceMatcher(a=a, b=b))
-            msg = "%s\n%s\nCompare score of %06.2f" % (a, b, score)
+            msg = "%s\n%s\nCompare score of %5.2f%%" % (a, b, score)
             if score >= args.auto_same_sub_threshold:
                 logging.debug("\n%s - Approved (automatically - higher threshold)" % msg)
                 sub_data[idx] = (score_lines(sub_data[idx][0], sub_data[idx + 1][0], args.lang), (sub_data[idx][1][0], sub_data[idx + 1][1][1]))
                 del sub_data[idx + 1]
             elif score >= args.same_sub_threshold:
                 if args.timid:
-                    user_input = input("%s Approve similarity? (Y/n)" % msg).lower()
+                    print(msg)
+                    user_input = input("Approve similarity? (Y/n)").lower()
                     logging.debug("User_input is %s" % user_input)
                     if user_input in ('y', ''):
                         logging.info("Change approved (user input)")
