@@ -320,7 +320,7 @@ def filter_only(path, outputdir):
     if os.path.exists(path + ".ffindex"):
         os.remove(path + ".ffindex")
     
-def ocr_only(path, outputdir):
+def ocr_only(path):
     screenlog_dir = os.path.dirname(path)
     if screenlog_dir.strip() == "":
         screenlog_dir = '.'
@@ -387,12 +387,19 @@ def ocr_only(path, outputdir):
         pbar.close()
         sub_data_alt = [(text_lines_alt[idx], frames_alt[idx]) for idx in range(length_alt)]
     
+    if alt_exists:
+        return (sub_data, sub_data_alt)
+    else:
+        return (sub_data,)
+    
+
+def post_process_subs(subsdata, outputdir, path):
     # Merging everything and converting
     logging.info("Correcting subtitles") 
-    sub_data = check_sub_data(sub_data)
+    sub_data = check_sub_data(subsdata[0])
+    if len(subsdata) == 2:
+        sub_data += check_sub_data(subsdata[1])
     logging.info("Converting to subtitle file") 
-    if alt_exists:
-        sub_data += check_sub_data(sub_data_alt)
     sub_data = sorted(sub_data, key=lambda file: int(file[1][0]))
     {"ass": convert_to_ass, "srt": convert_to_srt}[args.sub_format](sub_data, outputdir + "/" + os.path.basename(path))
     
@@ -414,13 +421,14 @@ def type_heurist_char_replace(string):
     except IOError:
         raise configargparse.ArgumentTypeError(" file \"%s\" not found" % string)
     
-def do_full(path, outputdir):
+def do_full(path):
     filter_only(path, args.workdir)
-    ocr_only(args.workdir + "/" + os.path.basename(path), outputdir)
+    subsdata = ocr_only(args.workdir + "/" + os.path.basename(path))
     os.remove(args.workdir + "/" + os.path.basename(path))
     os.remove(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".log")
     if os.path.exists(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".alt.log"):
         os.remove(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".alt.log")
+    return subsdata
     
 if __name__ == '__main__':
     default_ass_style = u"Style: Default,Verdana,55.5,&H00FFFFFF,&H000000FF,&H00282828,&H00000000,-1,0,0,0,100.2,100,0,0,1,3.75,0,2,0,0,79,1\n"
@@ -481,6 +489,9 @@ if __name__ == '__main__':
     argparser.add_argument(
                 '-t', '--timid', dest='timid', action="store_true",
                 help='Activate timid mode (it will ask for user input when some corrections are not automatically approved)')
+    argparser.add_argument(
+                '-d', '--delay', dest='delay', action="store_true",
+                help='Delay correction after every video is processed')
     args = argparser.parse_args()
 
     logging.basicConfig(
@@ -524,10 +535,18 @@ if __name__ == '__main__':
                     
     job = {"full": do_full, "ocr": ocr_only, "filter": filter_only}[args.mode]
                     
+    subsdatalist = []
     for idx, file in enumerate(files_to_process):
         logging.info("Processing %s, file %d of %d" % (os.path.basename(file), idx + 1, len(files_to_process)))
         cleanup_make_dirs()
-        job(file, args.outputdir)
+        subsdata = job(file)
+        if not args.delay:
+            post_process_subs(subsdata, args.outputdir, file)
+        else:
+            subsdatalist.append((subsdata, file))
+            
+    for subsdata, path in subsdatalist:
+        post_process_subs(subsdata, args.outputdir, path)
         
 
 
