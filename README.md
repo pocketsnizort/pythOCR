@@ -37,7 +37,8 @@ Here, you're done.
 How to use
 ==========
 
-$python3 pythOcr.py --help
+`$python3 pythOcr.py --help`
+```
 usage: PythoCR [-h] [--version] [-c CONFIG] [-l language] [-wd folder]
                [-o folder] [--log-level level] [--ass-style style]
                [-rr path to regex-replace json] [-hcr char,replace]
@@ -97,5 +98,6 @@ optional arguments:
   -t, --timid           Activate timid mode (it will ask for user input when
                         some corrections are not automatically approved)
   -d, --delay           Delay correction after every video is processed
-  
+```
+
 So to process the video /myVideos/vid01.mp4, the command would be `python3 pythoCR.py -c <myconfig> --vpy <myvpy> /myVideos/vid01.mp4`
