@@ -19,7 +19,7 @@ For windows:
 2. unzip the content of dependecies/Win/python_dep.zip to you python site-package
     
 For Linux:
-- install [Vapoursynth-plugins] (https://github.com/darealshinji/vapoursynth-plugins) (or use my containerized version of pythoCR)
+- install [Vapoursynth-plugins](https://github.com/darealshinji/vapoursynth-plugins) (or use my containerized version of pythoCR)
 
 Install (from pip) python prerequisites:
 
