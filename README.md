@@ -5,10 +5,11 @@ It uses vapoursynth, ffmpeg and tesseract along with some python modules
 Requirements
 ============
 
-Install python 3+
-Install vapoursynth
-Install tesseract
-(optionnal) install Vapoursynth Editor
+Install 
+- [python 3+](https://www.python.org/downloads/release)
+- [vapoursynth](https://github.com/vapoursynth/vapoursynth/releases)
+- [tesseract](https://github.com/tesseract-ocr/tesseract/wiki/Downloads)
+- (optionnal) [Vapoursynth Editor](https://bitbucket.org/mystery_keeper/vapoursynth-editor/downloads/)
 
 have python, ffmpeg and vspipe (vapoursynth) in the path
 
