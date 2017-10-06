@@ -15,8 +15,8 @@ have python, ffmpeg and vspipe (vapoursynth) in the path
 install vapoursynth plugins
 
 For windows:
-    1. unzip the content of dependecies/Win/vapoursynth_dep.zip to you vapoursynth plugin folder
-    2. unzip the content of dependecies/Win/python_dep.zip to you python site-package
+1. unzip the content of dependecies/Win/vapoursynth_dep.zip to you vapoursynth plugin folder
+2. unzip the content of dependecies/Win/python_dep.zip to you python site-package
     
 For Linux:
     install Vapoursynth-plugins (https://github.com/darealshinji/vapoursynth-plugins)
