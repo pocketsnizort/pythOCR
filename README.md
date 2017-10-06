@@ -12,16 +12,15 @@ Install tesseract
 
 have python, ffmpeg and vspipe (vapoursynth) in the path
 
-install the following vapoursynth & python modules:
-ffms2
-fmtconv
-scenechange
-temporalsoften2
-adjust.py
-havsfunc.py
-mvsfunc.py
-nnedi3_rpow2.py
-temporalsoften2.py
+install vapoursynth plugins
+
+For windows:
+    1. unzip the content of dependecies/Win/vapoursynth_dep.zip to you vapoursynth plugin folder
+    2. unzip the content of dependecies/Win/python_dep.zip to you python site-package
+    
+For Linux:
+    install Vapoursynth-plugins (https://github.com/darealshinji/vapoursynth-plugins)
+    (or use my containerized version of pythoCR)
 
 Install (from pip) python prerequisites:
 
