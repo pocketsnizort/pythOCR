@@ -19,6 +19,7 @@ For windows:
 2. unzip the content of dependecies/Win/python_dep.zip to you python site-package
     
 For Linux:
+
 install Vapoursynth-plugins (https://github.com/darealshinji/vapoursynth-plugins)
 (or use my containerized version of pythoCR)
 
@@ -36,8 +37,9 @@ Here, you're done.
 How to use
 ==========
 
-`$python3 pythOcr.py --help`
+
 ```
+$python3 pythOcr.py --help
 usage: PythoCR [-h] [--version] [-c CONFIG] [-l language] [-wd folder]
                [-o folder] [--log-level level] [--ass-style style]
                [-rr path to regex-replace json] [-hcr char,replace]
