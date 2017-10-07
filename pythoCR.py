@@ -320,7 +320,7 @@ def filter_only(path, outputdir):
     if os.path.exists(path + ".ffindex"):
         os.remove(path + ".ffindex")
     
-def ocr_only(path):
+def ocr_only(path, _):
     screenlog_dir = os.path.dirname(path)
     if screenlog_dir.strip() == "":
         screenlog_dir = '.'
@@ -421,9 +421,9 @@ def type_heurist_char_replace(string):
     except IOError:
         raise configargparse.ArgumentTypeError(" file \"%s\" not found" % string)
     
-def do_full(path):
+def do_full(path, _):
     filter_only(path, args.workdir)
-    subsdata = ocr_only(args.workdir + "/" + os.path.basename(path))
+    subsdata = ocr_only(args.workdir + "/" + os.path.basename(path), None)
     os.remove(args.workdir + "/" + os.path.basename(path))
     os.remove(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".log")
     if os.path.exists(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".alt.log"):
@@ -539,7 +539,7 @@ if __name__ == '__main__':
     for idx, file in enumerate(files_to_process):
         logging.info("Processing %s, file %d of %d" % (os.path.basename(file), idx + 1, len(files_to_process)))
         cleanup_make_dirs()
-        subsdata = job(file)
+        subsdata = job(file, args.outputdir)
         if not args.delay:
             post_process_subs(subsdata, args.outputdir, file)
         else:
