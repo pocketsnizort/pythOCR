@@ -248,7 +248,7 @@ def check_sub_data(sub_data):
     logging.debug("Correcting - Removing empty lines")
     sub_data = [data for data in sub_data if len(data[0]) > 0]
     
-    if not args.no_spellcheck:
+    if not args.no_spellcheck and len(args.heurist_char_replace) > 0:
         word_count = analyse_word_count(sub_data, args.lang)
         
         logging.debug("Correcting - Deleting heuristicly unwanted chars")
@@ -504,8 +504,8 @@ if __name__ == '__main__':
     logging.debug("Working with %d threads" % args.threads)
     logging.debug("Work directory set to %s" % args.workdir)
     logging.debug("Output directory set to %s" % args.outputdir)
-    logging.debug("regex_replace list is: %s" % "; ".join(["\"%s\" to \"%s\"" % entry for entry in args.regex_replace]))
-    logging.debug("heurist_char_replace list is: %s" % "; ".join(["\"%s\" to \"%s\"" % entry for entry in args.heurist_char_replace]))
+    logging.debug("regex_replace list of %d is: %s" % (len(args.regex_replace), "; ".join(["\"%s\" to \"%s\"" % entry for entry in args.regex_replace])))
+    logging.debug("heurist_char_replace list of %d is: %s" % (len(args.heurist_char_replace), "; ".join(["\"%s\" to \"%s\"" % entry for entry in args.heurist_char_replace])))
     init()
     
     if (args.mode == "full" or args.mode == "filter-only") and args.vpy is None:
