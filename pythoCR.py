@@ -540,13 +540,14 @@ if __name__ == '__main__':
         logging.info("Processing %s, file %d of %d" % (os.path.basename(file), idx + 1, len(files_to_process)))
         cleanup_make_dirs()
         subsdata = job(file, args.outputdir) if args.mode == "filter" else job(file)
-        if not args.delay:
+        if not args.mode == "filter" and not args.delay:
             post_process_subs(subsdata, args.outputdir, file)
         else:
             subsdatalist.append((subsdata, file))
-            
-    for subsdata, path in subsdatalist:
-        post_process_subs(subsdata, args.outputdir, path)
+             
+    if not args.mode == "filter":
+        for subsdata, path in subsdatalist:
+            post_process_subs(subsdata, args.outputdir, path)
         
 
 
