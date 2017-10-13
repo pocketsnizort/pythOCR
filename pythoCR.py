@@ -494,6 +494,10 @@ if __name__ == '__main__':
                 help='Delay correction after every video is processed')
     args = argparser.parse_args()
 
+    if not os.path.exists(args.outputdir):
+        os.makedirs(args.outputdir)
+        logging.debug("The output directory didn't exist, it was created.")
+        
     logging.basicConfig(
         level={'CRITICAL': 50,
          'ERROR': 40,
