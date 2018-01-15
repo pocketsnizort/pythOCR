@@ -160,6 +160,31 @@ def ocr_image(arg_tuple):
         
     arg_tuple[4].update(1)
     return text
+    
+def new_ocr_image(arg_tuple):
+    scene, language, pbar = arg_tuple
+    img_path = scene[2]
+    result_base = os.path.basename(img_path)
+    
+    tess_cmd = ["tesseract", img_path, result_base, "-l", language, "-psm", "6", "hocr"]
+    subprocess.call(tess_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
+    # Read the content
+    ext = ".hocr"
+    if not os.path.exists(result_base + ext):
+        ext = ".html"
+    with open(result_base + ext, 'r', encoding="utf8") as ifile:
+        html_content = ifile.read()
+        
+    # Convert to text only
+    text = re.sub(r"<(?!/?em)[^>]+>", "", html_content)
+    text = text.strip().replace("</em> <em>", " ").replace("&#39;", "'").replace("&quot;", "\"").replace("&amp;", "&").replace("&gt;", ">").replace("&lt;", "<")
+    text = re.sub(r"<(/?)em>", "<\\1i>", text)
+    text = '\n'.join([x.strip() for x in text.splitlines() if x.strip()])
+    text = re.sub(r"</i>(?:\r\n|\n)<i>", "\n", text)
+    
+    pbar.update(1)
+    return (scene[0], scene[1], text)
 
 def sec_to_time(secs):
     hours = secs / 3600
@@ -223,7 +248,7 @@ def convert_to_ass(sub_data, mp4_path):
                     u'Alignment, MarginL, MarginR, MarginV, '
                     u'Encoding\n')
         ofile.write(args.ass_style)
-        ofile.write(u'\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV,'
+        ofile.write(u'\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV,'
                     u' Effect, Text\n')
         for data in sub_data:
             if len(data[0]) > 0:
@@ -319,6 +344,76 @@ def filter_only(path, outputdir):
     
     if os.path.exists(path + ".ffindex"):
         os.remove(path + ".ffindex")
+    
+def get_scenes_from_scene_data(scene_data, last_frame):
+    scene_bounds = []
+    for line in scene_data.split("\n"):
+        match = re.findall(r"(\d+),(\d),(\d),\"[^\"]\"", line)
+        scene_bounds.append((int(match[0][0],
+                             bool(int(match[0][1])),
+                             bool(int(match[0][2])),
+                             match[0][3])))
+    scene_bounds = sorted(scene_bounds, key=lambda scene_bound: scene_bound[0])
+    
+    scenes = []
+    start_frame = None
+    start_img_path = None
+    for idx, scene_bond in enumerate(scene_bounds):
+        frame, is_start, is_end, img_path = scene_bond
+        if idx = 0 and not is_start and is_end:
+            # Case where scenechange missed first scene ??? (has happened)
+            pass
+        elif is_start and is_end: 
+            # Case where the scene is one frame long (should not happen too often)
+            scene.append((frame, frame, img_path))
+        elif is_start:
+            start_frame = frame
+            start_img_path = img_path
+        elif is_end:
+            scenes.append((start_frame, frame, img_path))
+            start_frame = None
+            start_img_path = None
+    if start_frame and start_img_path:
+        scenes.append((start_frame, last_frame, start_img_path))
+        
+    return scenes
+    
+def ocr_scenes(scenes):
+    logging.info("OCRing images")
+    pool = ThreadPool(args.threads)
+    pbar = tqdm(total=len(scene), mininterval=1)
+    scenes = pool.map(new_ocr_image, [(scene, args.lang, pbar) for scene in scenes])
+    pool.close()
+    pool.join()
+    pbar.close()
+    return scenes
+    
+def new_ocr_only(screenlog_dir):
+    if not os.path.exists(screenlog_dir + "/SceneChanges.csv"):
+        logging.error("No screenlog found in dir \"%s\", aborting." % screenlog_dir)
+        return (None,)
+    alt_exists = os.path.exists(screenlog_dir + "/SceneChangesAlt.csv")
+    logging.debug("Alternative Screenlog found." if alt_exists else "No alternative Screenlog found.")
+    
+    with open(screenlog_dir + "/SceneChanges.csv", "r") as ifile:
+        video_data, scene_data = ifile.read().split("[Scene Informations]\n", 1)
+        
+    global video_fps
+    global last_frame
+    
+    video_data_match = re.findall(r"\[Video Informations\]\nfps=(\d+\.\d+)\nframe_count=(\d+)", video_data)[0]
+    video_fps = float(video_data_match[0])
+    last_frame = int(video_data_match[1]) - 1
+    
+    logging.debug("video framerate is %s" % str(video_fps))
+    logging.debug("last frame is %s" % last_frame)
+    
+    scenes = get_scenes_from_scene_data(scene_data, last_frame)
+    scene = ocr_scenes(scenes)
+        
+    # Ocr now
+    # scene, language, pbar = arg_tuple
+    
     
 def ocr_only(path):
     screenlog_dir = os.path.dirname(path)
@@ -431,7 +526,7 @@ def do_full(path):
     return subsdata
     
 if __name__ == '__main__':
-    default_ass_style = u"Style: Default,Verdana,55.5,&H00FFFFFF,&H000000FF,&H00282828,&H00000000,-1,0,0,0,100.2,100,0,0,1,3.75,0,2,0,0,79,1\n"
+    default_ass_style = "Style: Default,Verdana,55.5,&H00FFFFFF,&H000000FF,&H00282828,&H00000000,-1,0,0,0,100.2,100,0,0,1,3.75,0,2,0,0,79,1"
     argparser = configargparse.ArgumentParser(description='Process a previously filtered video and extract subtitles as srt.', prog="PythoCR")
     argparser.add_argument('--version', action='version', version='%(prog)s ' + version)
     argparser.add_argument(
