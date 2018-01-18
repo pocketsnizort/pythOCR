@@ -22,7 +22,7 @@ install vapoursynth plugins:
 
 Install (from pip) python prerequisites:
 
-`$pip3 install colorama configargparse pyEnchant tqdm`
+`$pip3 install colorama configargparse pyEnchant numpy opencv-python tqdm`
 
 Installation
 ============
