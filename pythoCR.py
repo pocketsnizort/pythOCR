@@ -8,6 +8,7 @@ import json
 import shlex
 import shutil
 import subprocess
+import pdb
 from colorama import init, Fore, Style
 import difflib
 from itertools import product
@@ -15,7 +16,7 @@ from tqdm import tqdm
 # from userconfig.userconfig import regex_replace, chars_to_try_to_replace, auto_same_sub_threshold, same_sub_threshold
 from multiprocessing.dummy import Pool as ThreadPool 
 
-version = "1.83"
+version = "2.00"
 
 media_ext = {".mp4", ".mkv", ".avi"}
 
@@ -112,59 +113,10 @@ def extreme_try_subs_without_char(sub_data, chars_to_try_to_replace, language, w
         sub_data[idx] = (extreme_try_string_without_char(sub_data[idx][0], chars_to_try_to_replace, enchant_dict, word_count), sub_data[idx][1])
     return sub_data
     
-def get_scene(screenlog_file_path):
-    frames = []
-    with open(screenlog_file_path) as ifile:
-        lines = sorted(ifile, key=lambda line: int(line.strip().split(' ')[0]))
-        for idx in range(0, len(lines)):
-            frame_start, is_start, is_end  = lines[idx].strip().split(' ')
-            if is_start == '1' and is_end == '1':
-                #Scene change of only 1 frame
-                frames.append([frame_start, frame_start])
-                continue
-            elif idx == 0 and is_end == '1':
-                frames.append(('0', frame_start))
-                continue
-            if idx == len(lines) - 1:
-                frame_end = last_frame
-            else:
-                frame_end = lines[idx + 1].strip().split(' ', 1)[0]          
-
-            frames.append((frame_start, frame_end))
-    return frames
-
-def ocr_image(arg_tuple):
-    # arg_tuple should be : (image_name, result_base, language, is_alt, pbar, args)
-    args = arg_tuple[5]
-    # OCR using tesseract
-    tess_cmd = "tesseract \"%s\" \"%s\" -l %s -psm 6 hocr " % (arg_tuple[0], arg_tuple[1], arg_tuple[2])
-    subprocess.call(shlex.split(tess_cmd), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
-    # Read the content
-    ext = ".hocr"
-    if not os.path.exists(arg_tuple[1] + ext):
-        ext = ".html"
-    with open(arg_tuple[1] + ext, 'r', encoding="utf8") as ifile:
-        html_content = ifile.read()
-        
-    # Convert to text only
-    text = re.sub(r"<(?!/?em)[^>]+>", "", html_content)
-    text = text.strip().replace("</em> <em>", " ").replace("&#39;", "'").replace("&quot;", "\"").replace("&amp;", "&").replace("&gt;", ">").replace("&lt;", "<")
-    text = re.sub(r"<(/?)em>", "<\\1i>", text)
-    text = '\n'.join([x.strip() for x in text.splitlines() if x.strip()])
-    text = re.sub(r"</i>(?:\r\n|\n)<i>", "\n", text)
-    for regex in args.regex_replace:
-        text = re.sub(regex[0], regex[1], text)
-    if arg_tuple[3] and text.strip():
-        text = "<font color=\"#ffff00\">" + text + "</font>"
-        
-    arg_tuple[4].update(1)
-    return text
-    
 def new_ocr_image(arg_tuple):
     scene, language, pbar = arg_tuple
     img_path = scene[2]
-    result_base = os.path.basename(img_path)
+    result_base = os.path.splitext(img_path)[0]
     
     tess_cmd = ["tesseract", img_path, result_base, "-l", language, "-psm", "6", "hocr"]
     subprocess.call(tess_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -184,7 +136,7 @@ def new_ocr_image(arg_tuple):
     text = re.sub(r"</i>(?:\r\n|\n)<i>", "\n", text)
     
     pbar.update(1)
-    return (scene[0], scene[1], text)
+    return (text, (scene[0], scene[1]))
 
 def sec_to_time(secs):
     hours = secs / 3600
@@ -277,7 +229,6 @@ def check_sub_data(sub_data):
         word_count = analyse_word_count(sub_data, args.lang)
         
         logging.debug("Correcting - Deleting heuristicly unwanted chars")
-        # sub_data = try_subs_without_char(sub_data, chars_to_try_to_replace, args.lang)
         sub_data = extreme_try_subs_without_char(sub_data, args.heurist_char_replace, args.lang, word_count)
 
     logging.debug("Correcting - Adding trailing frame")
@@ -314,88 +265,65 @@ def check_sub_data(sub_data):
         idx += 1
         
     return sub_data
-    
-def cleanup_make_dirs():
-    if os.path.exists(screen_dir):
-        shutil.rmtree(screen_dir, ignore_errors=True)
-    os.makedirs(screen_dir)
         
-    if os.path.exists(tess_dir):
-        shutil.rmtree(tess_dir, ignore_errors=True)
-    os.makedirs(tess_dir)
-    
-def filter_only(path, outputdir):
-    if os.path.exists("SceneChanges.log"):
-        os.remove("SceneChanges.log")
-    if os.path.exists("SceneChangesAlt.log"):
-        os.remove("SceneChangesAlt.log")
-
+def new_filter_only(path, outputdir):
     logging.info("Starting to filter file %s" % path)
-    vscmd = "vspipe -y --arg FichierSource=\"%s\" %s -" % (path, args.vpy)
-    ffcmd = "ffmpeg -i - -c:v mpeg4 -qscale:v 3 -y \"%s\"" % (outputdir + "/" + os.path.basename(path))
-    logging.debug("Command used: %s | %s" % (vscmd, ffcmd))
-    vspipe_ps = subprocess.Popen(shlex.split(vscmd), stdout=subprocess.PIPE)
-    subprocess.call(shlex.split(ffcmd), stdin=vspipe_ps.stdout)
-    
-    if os.path.exists("SceneChanges.log"):
-        shutil.move("SceneChanges.log", outputdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".log")
-    if os.path.exists("SceneChangesAlt.log"):
-        shutil.move("SceneChangesAlt.log", outputdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".alt.log")
+    vscmd = "vspipe -y -p --arg FichierSource=\"%s\" --arg dir=\"%s\" %s -" % (path, outputdir, args.vpy)
+    logging.debug("Command used: %s" % vscmd)
+    with open(os.devnull, 'w') as fnull:
+        subprocess.call(shlex.split(vscmd), stdout=fnull)
     
     if os.path.exists(path + ".ffindex"):
         os.remove(path + ".ffindex")
     
-def get_scenes_from_scene_data(scene_data, last_frame):
+def get_scenes_from_scene_data(scene_data, last_frame, base_dir):
     scene_bounds = []
-    for line in scene_data.split("\n"):
-        match = re.findall(r"(\d+),(\d),(\d),\"[^\"]\"", line)
-        scene_bounds.append((int(match[0][0],
-                             bool(int(match[0][1])),
-                             bool(int(match[0][2])),
-                             match[0][3])))
+    scene_bounds = re.findall(r"(\d+),(\d),(\d),\"([^\"]*)\"", "\n".join(scene_data.split("\n")[1:]))
     scene_bounds = sorted(scene_bounds, key=lambda scene_bound: scene_bound[0])
     
     scenes = []
     start_frame = None
     start_img_path = None
     for idx, scene_bond in enumerate(scene_bounds):
-        frame, is_start, is_end, img_path = scene_bond
-        if idx = 0 and not is_start and is_end:
+        frame = int(scene_bond[0])
+        is_start = int(scene_bond[1])
+        is_end = int(scene_bond[2])
+        img_path = scene_bond[3]
+        img_path = os.path.join(base_dir, img_path)
+        if idx == 0 and not is_start and is_end:
             # Case where scenechange missed first scene ??? (has happened)
             pass
         elif is_start and is_end: 
             # Case where the scene is one frame long (should not happen too often)
-            scene.append((frame, frame, img_path))
+            scenes.append((frame, frame, img_path))
         elif is_start:
             start_frame = frame
             start_img_path = img_path
-        elif is_end:
-            scenes.append((start_frame, frame, img_path))
+        elif is_end and start_frame and start_img_path:
+            scenes.append((start_frame, frame, start_img_path))
             start_frame = None
             start_img_path = None
+        else:
+            # Should not get here often, but still
+            pass
     if start_frame and start_img_path:
         scenes.append((start_frame, last_frame, start_img_path))
-        
     return scenes
     
 def ocr_scenes(scenes):
     logging.info("OCRing images")
     pool = ThreadPool(args.threads)
-    pbar = tqdm(total=len(scene), mininterval=1)
+    pbar = tqdm(total=len(scenes), mininterval=1)
     scenes = pool.map(new_ocr_image, [(scene, args.lang, pbar) for scene in scenes])
     pool.close()
     pool.join()
     pbar.close()
     return scenes
     
-def new_ocr_only(screenlog_dir):
-    if not os.path.exists(screenlog_dir + "/SceneChanges.csv"):
-        logging.error("No screenlog found in dir \"%s\", aborting." % screenlog_dir)
-        return (None,)
-    alt_exists = os.path.exists(screenlog_dir + "/SceneChangesAlt.csv")
-    logging.debug("Alternative Screenlog found." if alt_exists else "No alternative Screenlog found.")
-    
-    with open(screenlog_dir + "/SceneChanges.csv", "r") as ifile:
+def ocr_one_screenlog(screenlog_dir):
+    logging.info("OCR - Processing directory %s" % screenlog_dir)
+
+    with open(os.path.join(screenlog_dir, "SceneChanges.csv"), "r") as ifile:
         video_data, scene_data = ifile.read().split("[Scene Informations]\n", 1)
         
     global video_fps
@@ -408,86 +336,21 @@ def new_ocr_only(screenlog_dir):
     logging.debug("video framerate is %s" % str(video_fps))
     logging.debug("last frame is %s" % last_frame)
     
-    scenes = get_scenes_from_scene_data(scene_data, last_frame)
-    scene = ocr_scenes(scenes)
-        
-    # Ocr now
-    # scene, language, pbar = arg_tuple
+    scenes = get_scenes_from_scene_data(scene_data, last_frame, screenlog_dir)
+    return ocr_scenes(scenes)
     
+def new_ocr_only(input_root_dir):
+    if not os.path.exists(os.path.join(input_root_dir, "default", "SceneChanges.csv")):
+        logging.error("No screenlog found in dir \"%s\", aborting." % input_root_dir)
+        return (None,)
+    alt_exists = os.path.exists(os.path.join(input_root_dir, "alt", "SceneChanges.csv"))
+    logging.debug("Alternative Screenlog found." if alt_exists else "No alternative Screenlog found.")
     
-def ocr_only(path):
-    screenlog_dir = os.path.dirname(path)
-    if screenlog_dir.strip() == "":
-        screenlog_dir = '.'
-    alt_exists = os.path.exists(screenlog_dir + "/" + os.path.splitext(os.path.basename(path))[0] + ".alt.log")
-    logging.debug("Is there alts: %s" % str(alt_exists))
-
-    logging.info("Using YoloCR in CLI mode.")
-    logging.info("Prelude.")
-
-    global video_fps
-    global last_frame
-    
-    # Load Meta-Data (Framerate and frame count)
-    video_fps = eval(re.findall(r'r_frame_rate="([^"]+)"', str(subprocess.check_output(shlex.split("ffprobe \"%s\" -v 0 -select_streams v:0 -print_format flat -show_entries stream=r_frame_rate" % path))))[0])
-    logging.debug("video framerate is %s" % str(video_fps))
-
-    last_frame = eval(re.findall(r'nb_read_frames="([^"]+)"', str(subprocess.check_output(shlex.split("ffprobe \"%s\" -v 0 -count_frames -select_streams v:0 -print_format flat -show_entries stream=nb_read_frames " % path))))[0] + "-1")
-    logging.debug("last frame is %s" % last_frame)
-    
-    # Generating sub images from screenchange log
-    frames = get_scene(os.path.splitext(screenlog_dir + "/" + os.path.basename(path))[0] + ".log")
-    
-
     if alt_exists:
-        # logging.debug("frames to extract are: %s" % str(frames))
-        ffmpeg_cmd = "ffmpeg -loglevel error -i \"%s\" -vf select='%s',crop='h=ih/2:y=ih/2' -vsync 0 \"%s/%%0%dd.jpg\"" % (path, "+".join(["eq(n\,%s)" % scene[0] for scene in frames]), screen_dir, len(str(len(frames))))
-        # logging.debug("ffmepg command is: %s" % ffmpeg_cmd)
-        logging.info("Generating images")
-        subprocess.call(shlex.split(ffmpeg_cmd), stdout=subprocess.DEVNULL)
-        frames_alt = get_scene(os.path.splitext(screenlog_dir + "/" + os.path.basename(path))[0] + ".alt.log")
-        # logging.debug("frames alt to extract are: %s" % str(frames_alt))
-        ffmpeg_cmd = "ffmpeg -loglevel error -i \"%s\" -vf select='%s',crop='h=ih/2:y=0' -vsync 0 \"%s/%%0%dd_alt.jpg\"" % (path, "+".join(["eq(n\,%s)" % scene[0] for scene in frames_alt]), screen_dir, len(str(len(frames_alt))))
-        # logging.debug("ffmepg alt command is: %s" % ffmpeg_cmd)
-        logging.info("Generating alt images")
-        subprocess.call(shlex.split(ffmpeg_cmd), stdout=subprocess.DEVNULL)
+        return (ocr_one_screenlog(os.path.join(input_root_dir, "default")), [("<font color=\"#ffff00\">" + text + "</font>", time) for (text, time) in ocr_one_screenlog(os.path.join(input_root_dir, "alt"))])
     else:
-        # logging.debug("frames to extract are: %s" % str(frames))
-        ffmpeg_cmd = "ffmpeg -loglevel error -i \"%s\" -vf select='%s' -vsync 0 \"%s/%%0%dd.jpg\"" % (path, "+".join(["eq(n\,%s)" % scene[0] for scene in frames]), screen_dir, len(str(len(frames))))
-        # logging.debug("ffmepg command is: %s" % ffmpeg_cmd)
-        logging.info("Generating images")
-        subprocess.call(shlex.split(ffmpeg_cmd), stdout=subprocess.DEVNULL)
-        
-    # Parallele processing of sub images (OCR + converting to text + text fixing)
-    length = len(frames)
-    num_len = len(str(length))
-    logging.info("OCRing images")
-    pool = ThreadPool(args.threads)
-    pbar = tqdm(total=length, mininterval=1)
-    text_lines = pool.map(ocr_image, [("%s/%0*d.jpg" % (screen_dir, num_len, idx+1), "%s/%0*d" % (tess_dir, num_len, idx+1), args.lang, False, pbar, args) for idx in range(length)])
-    sub_data = [(text_lines[idx], frames[idx]) for idx in range(length)]
-    pool.close()
-    pool.join()
-    pbar.close()
+        return (ocr_one_screenlog(os.path.join(input_root_dir, "default")),)
     
-    if alt_exists:
-        logging.info("OCRing alt images")
-        pool = ThreadPool(args.threads)
-        length_alt = len(frames_alt)
-        num_len_alt = len(str(length_alt))
-        pbar = tqdm(total=length_alt, mininterval=1)
-        text_lines_alt = pool.map(ocr_image, [("%s/%0*d_alt.jpg" % (screen_dir, num_len_alt, idx+1), "%s/%0*d_alt" % (tess_dir, num_len_alt, idx+1), args.lang, True, pbar, args) for idx in range(length_alt)])
-        pool.close()
-        pool.join()
-        pbar.close()
-        sub_data_alt = [(text_lines_alt[idx], frames_alt[idx]) for idx in range(length_alt)]
-    
-    if alt_exists:
-        return (sub_data, sub_data_alt)
-    else:
-        return (sub_data,)
-    
-
 def post_process_subs(subsdata, outputdir, path):
     # Merging everything and converting
     logging.info("Correcting subtitles") 
@@ -496,7 +359,7 @@ def post_process_subs(subsdata, outputdir, path):
         sub_data += check_sub_data(subsdata[1])
     logging.info("Converting to subtitle file") 
     sub_data = sorted(sub_data, key=lambda file: int(file[1][0]))
-    {"ass": convert_to_ass, "srt": convert_to_srt}[args.sub_format](sub_data, outputdir + "/" + os.path.basename(path))
+    {"ass": convert_to_ass, "srt": convert_to_srt}[args.sub_format](sub_data, os.path.join(outputdir, os.path.basename(path)))
     
 def type_regex_replace(string):
     try:
@@ -516,13 +379,10 @@ def type_heurist_char_replace(string):
     except IOError:
         raise configargparse.ArgumentTypeError(" file \"%s\" not found" % string)
     
-def do_full(path):
-    filter_only(path, args.workdir)
-    subsdata = ocr_only(args.workdir + "/" + os.path.basename(path))
-    os.remove(args.workdir + "/" + os.path.basename(path))
-    os.remove(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".log")
-    if os.path.exists(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".alt.log"):
-        os.remove(args.workdir + "/" + os.path.splitext(os.path.basename(path))[0] + ".alt.log")
+def new_do_full(path):
+    new_filter_only(path, args.workdir)
+    subsdata = new_ocr_only(os.path.join(args.workdir, os.path.basename(path)))
+    shutil.rmtree(os.path.join(args.workdir, os.path.basename(path)), ignore_errors=True)
     return subsdata
     
 if __name__ == '__main__':
@@ -613,31 +473,29 @@ if __name__ == '__main__':
     
     logging.debug("Creating directory at path %s" % args.workdir)
 
-    screen_dir = "%s/%s" % (args.workdir, "screen_dir")
-    tess_dir = "%s/%s" % (args.workdir, "TessResult")
-
     if not os.path.exists(args.workdir):
         os.makedirs(args.workdir)
     
     files_to_process = []
-    
     for path in args.path:
         if os.path.isfile(path):
             if os.path.splitext(path)[1] in media_ext:
                 files_to_process.append(path)
             else:
                 logging.warning("%s is not a media video file" % path)
-        elif os.path.isdir(path):
+        elif os.path.isdir(path) and args.mode != "ocr":
             for file in os.listdir(path):
                 if os.path.splitext(file)[1] in media_ext:
-                    files_to_process.append("%s/%s" % (path, file))
+                    files_to_process.append(os.path.join(path, file))
+        elif os.path.isdir(path) and args.mode == "ocr":
+            if ("." + path.split(".")[-1]) in media_ext:
+                files_to_process.append(path)
                     
-    job = {"full": do_full, "ocr": ocr_only, "filter": filter_only}[args.mode]
+    job = {"full": new_do_full, "ocr": new_ocr_only, "filter": new_filter_only}[args.mode]
                     
     subsdatalist = []
     for idx, file in enumerate(files_to_process):
         logging.info("Processing %s, file %d of %d" % (os.path.basename(file), idx + 1, len(files_to_process)))
-        cleanup_make_dirs()
         subsdata = job(file, args.outputdir) if args.mode == "filter" else job(file)
         if not args.mode == "filter" and not args.delay:
             post_process_subs(subsdata, args.outputdir, file)
