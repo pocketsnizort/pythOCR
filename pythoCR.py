@@ -16,7 +16,7 @@ from tqdm import tqdm
 # from userconfig.userconfig import regex_replace, chars_to_try_to_replace, auto_same_sub_threshold, same_sub_threshold
 from multiprocessing.dummy import Pool as ThreadPool 
 
-version = "2.00"
+version = "2.01"
 
 media_ext = {".mp4", ".mkv", ".avi"}
 
@@ -224,6 +224,12 @@ def strip_tags(string):
 def check_sub_data(sub_data):
     logging.debug("Correcting - Removing empty lines")
     sub_data = [data for data in sub_data if len(data[0]) > 0]
+    
+    for data in sub_data:
+        text = data[0]
+        for regex in args.regex_replace:
+            text = re.sub(regex[0], regex[1], text)
+        data = (text, data[1])
     
     if not args.no_spellcheck and len(args.heurist_char_replace) > 0:
         word_count = analyse_word_count(sub_data, args.lang)
