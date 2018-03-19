@@ -274,7 +274,7 @@ def check_sub_data(sub_data):
         
 def new_filter_only(path, outputdir):
     logging.info("Starting to filter file %s" % path)
-    vscmd = "vspipe -y -p --arg FichierSource=\"%s\" --arg dir=\"%s\" %s -" % (path, outputdir, args.vpy)
+    vscmd = "vspipe -y -p --arg FichierSource=\"%s\" --arg dir=\"%s\" %s -" % (os.path.abspath(path), os.path.abspath(outputdir), args.vpy)
     logging.debug("Command used: %s" % vscmd)
     with open(os.devnull, 'w') as fnull:
         subprocess.call(shlex.split(vscmd), stdout=fnull)

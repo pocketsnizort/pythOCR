@@ -1,6 +1,6 @@
 #FichierSource="test.mp4"
 FichierSource = FichierSource.decode("utf-8") # [Arg] Fichier vidéo source
-dir = dir.decode("utf-8") # [Arg] Dossier où placer les résultats produits (sous-iùages)
+dir = dir.decode("utf-8") # [Arg] Dossier où placer les résultats produits (sous-images)
 DimensionCropBox=[1344,150] # Taille en largeur et hauteur de la CropBox délimitant les sous-titres à OCR.
 HauteurCropBox=46 # Hauteur de la CropBox délimitant les sous-titres à OCR.
 HauteurCropBoxAlt=860 # Hauteur de la CropBox Alternative, utile pour l'OCR des indications. Double le temps de traitement. Mettre à -1 pour désactiver.
