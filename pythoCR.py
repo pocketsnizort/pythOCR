@@ -16,7 +16,7 @@ from tqdm import tqdm
 # from userconfig.userconfig import regex_replace, chars_to_try_to_replace, auto_same_sub_threshold, same_sub_threshold
 from multiprocessing.dummy import Pool as ThreadPool 
 
-version = "2.01"
+version = "2.02"
 
 media_ext = {".mp4", ".mkv", ".avi"}
 
@@ -118,7 +118,7 @@ def new_ocr_image(arg_tuple):
     img_path = scene[2]
     result_base = os.path.splitext(img_path)[0]
     
-    tess_cmd = ["tesseract", img_path, result_base, "-l", language, "-psm", "6", "hocr"]
+    tess_cmd = [args.tesseract_path, img_path, result_base, "-l", language, "-psm", "6", "hocr"]
     subprocess.call(tess_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     
     # Read the content
@@ -225,11 +225,11 @@ def check_sub_data(sub_data):
     logging.debug("Correcting - Removing empty lines")
     sub_data = [data for data in sub_data if len(data[0]) > 0]
     
-    for data in sub_data:
-        text = data[0]
+    for idx in range(len(sub_data)):
+        text = sub_data[idx][0]
         for regex in args.regex_replace:
             text = re.sub(regex[0], regex[1], text)
-        data = (text, data[1])
+        sub_data[idx] = (text, sub_data[idx][1])
     
     if not args.no_spellcheck and len(args.heurist_char_replace) > 0:
         word_count = analyse_word_count(sub_data, args.lang)
@@ -238,8 +238,8 @@ def check_sub_data(sub_data):
         sub_data = extreme_try_subs_without_char(sub_data, args.heurist_char_replace, args.lang, word_count)
 
     logging.debug("Correcting - Adding trailing frame")
-    for data in sub_data:
-        data = (data[0], (data[1][0], str(int(data[1][1]) + 1)))
+    for idx in range(len(sub_data)):
+        sub_data[idx] = (sub_data[idx][0], (sub_data[idx][1][0], str(int(sub_data[idx][1][1]) + 1)))
         
     logging.debug("Correcting - Merging identical consecutive lines")
     idx = 0
@@ -274,7 +274,7 @@ def check_sub_data(sub_data):
         
 def new_filter_only(path, outputdir):
     logging.info("Starting to filter file %s" % path)
-    vscmd = "vspipe -y -p --arg FichierSource=\"%s\" --arg dir=\"%s\" %s -" % (os.path.abspath(path), os.path.abspath(outputdir), args.vpy)
+    vscmd = "\"%s\" -y -p --arg FichierSource=\"%s\" --arg dir=\"%s\" \"%s\" -" % (args.vapoursynth_path, os.path.abspath(path), os.path.abspath(outputdir), os.path.abspath(args.vpy))
     logging.debug("Command used: %s" % vscmd)
     with open(os.devnull, 'w') as fnull:
         subprocess.call(shlex.split(vscmd), stdout=fnull)
@@ -453,6 +453,14 @@ if __name__ == '__main__':
     argparser.add_argument(
                 '-d', '--delay', dest='delay', action="store_true",
                 help='Delay correction after every video is processed')
+    argparser.add_argument(
+                '--tesseract-path', dest='tesseract_path', metavar='path to tesseract binary',
+                type=str, default="tesseract",
+                help='The path to user to call tesseract (default: tesseract)')
+    argparser.add_argument(
+                '--vapoursynth-path', dest='vapoursynth_path', metavar='path to vspipe binary',
+                type=str, default="vspipe",
+                help='The path to user to call vapoursynth (default: vspipe)')
     args = argparser.parse_args()
 
     if not os.path.exists(args.outputdir):

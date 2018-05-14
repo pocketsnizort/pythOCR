@@ -31,11 +31,11 @@ def minimum(x,y):
 
 displayname = os.path.basename(FichierSource)
 
-if not os.path.exists("%s/%s" % (dir, displayname)):
-    os.makedirs("%s/%s" % (dir, displayname))
-    os.makedirs("%s/%s/default" % (dir, displayname))
+if not os.path.exists(os.path.join(dir, displayname)):
+    os.makedirs(os.path.abspath(os.path.join(dir, displayname)))
+    os.makedirs(os.path.abspath(os.path.join(dir, displayname, "default")))
     if HauteurCropBoxAlt != -1:
-        os.makedirs("%s/%s/alt" % (dir, displayname))    
+        os.makedirs(os.path.abspath(os.path.join(dir, displayname, "alt"))) 
     
 Clip=core.ffms2.Source(source=FichierSource)
 if type(SeuilI) is int and type(SeuilO) is int:
@@ -156,8 +156,8 @@ def SceneLog(n,f,clip,dir,zero_pad):
             frame = f[1]
             v = cv.merge([np.array(frame.get_read_array(i), copy=False) for i in reversed(range(frame.format.num_planes))])
             nfn = "%0*d.png"  % (zero_pad, n)
-            cv.imwrite("%s/%s" % (dir, nfn), v)
-        with open("%s/SceneChanges.csv" % dir, "a") as ofile:
+            cv.imwrite(os.path.join(dir, nfn), v)
+        with open(os.path.join(dir, "SceneChanges.csv"), "a") as ofile:
             ofile.write("%0*d,%d,%d,\"%s\"\n" % (zero_pad, n, f[0].props._SceneChangePrev, f[0].props._SceneChangeNext, nfn))
     return clip
 
@@ -182,7 +182,7 @@ ClipCleanedSC=core.misc.SCDetect(clip=ClipCleanedSC,threshold=SeuilSCD)
 ClipCleanedSC = core.std.PlaneStats(ClipCleanedSC)
 
 zero_pad = len(str(ClipCleaned.num_frames))
-ClipCleaned=core.std.FrameEval(ClipCleaned,functools.partial(SceneLog,clip=ClipCleaned,dir="%s/%s/default" % (dir, displayname), zero_pad=zero_pad),prop_src=[ClipCleanedSC, ClipCleaned])
+ClipCleaned=core.std.FrameEval(ClipCleaned,functools.partial(SceneLog,clip=ClipCleaned,dir=os.path.join(dir, displayname, "default"), zero_pad=zero_pad),prop_src=[ClipCleanedSC, ClipCleaned])
 
 
 if HauteurCropBoxAlt>=0:
@@ -197,7 +197,7 @@ if HauteurCropBoxAlt>=0:
     # ClipCleanedAltSC=ClipCleanedAlt
     ClipCleanedAltSC=core.misc.SCDetect(clip=ClipCleanedAltSC,threshold=SeuilSCD)
     ClipCleanedAltSC = core.std.PlaneStats(ClipCleanedAltSC)
-    ClipCleanedAlt=core.std.FrameEval(ClipCleanedAlt,functools.partial(SceneLog,clip=ClipCleanedAlt,dir="%s/%s/alt" % (dir, displayname), zero_pad=zero_pad),prop_src=[ClipCleanedAltSC, ClipCleanedAlt])
+    ClipCleanedAlt=core.std.FrameEval(ClipCleanedAlt,functools.partial(SceneLog,clip=ClipCleanedAlt,dir=os.path.join(dir, displayname, "alt"), zero_pad=zero_pad),prop_src=[ClipCleanedAltSC, ClipCleanedAlt])
     
     Clip=core.std.StackVertical([ClipCleanedAlt,ClipCleaned])
 
