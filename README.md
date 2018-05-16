@@ -1,6 +1,9 @@
 A python program to OCR videos
 
+Adapted (aka shamelessly stolen) from the bash based video OCR Yolocr (https://git.clapity.eu/Id/YoloCR)
+
 It uses vapoursynth, ffmpeg and tesseract along with some python modules
+
 
 Requirements
 ============
