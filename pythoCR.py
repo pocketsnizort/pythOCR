@@ -16,7 +16,7 @@ from tqdm import tqdm
 # from userconfig.userconfig import regex_replace, chars_to_try_to_replace, auto_same_sub_threshold, same_sub_threshold
 from multiprocessing.dummy import Pool as ThreadPool 
 
-version = "2.02"
+version = "2.03"
 
 media_ext = {".mp4", ".mkv", ".avi"}
 
@@ -118,15 +118,8 @@ def new_ocr_image(arg_tuple):
     img_path = scene[2]
     result_base = os.path.splitext(img_path)[0]
     
-    tess_cmd = [args.tesseract_path, img_path, result_base, "-l", language, "-psm", "6", "hocr"]
-    subprocess.call(tess_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    
-    # Read the content
-    ext = ".hocr"
-    if not os.path.exists(result_base + ext):
-        ext = ".html"
-    with open(result_base + ext, 'r', encoding="utf8") as ifile:
-        html_content = ifile.read()
+    tess_cmd = [args.tesseract_path, img_path, "stdout", "-l", language, "-psm", "6", "hocr"]
+    html_content = subprocess.check_output(tess_cmd, stderr=subprocess.DEVNULL).decode('utf-8')
         
     # Convert to text only
     text = re.sub(r"<(?!/?em)[^>]+>", "", html_content)
