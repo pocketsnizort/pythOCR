@@ -9,17 +9,17 @@ Requirements
 ============
 
 Install 
-- [python 3+](https://www.python.org/downloads/release)
+- [python 3+](https://www.python.org/downloads/release) (Use the 32-bit version on Windows, because pyEnchant does not support Win64)
 - [vapoursynth](https://github.com/vapoursynth/vapoursynth/releases)
 - [tesseract](https://github.com/tesseract-ocr/tesseract/wiki/Downloads)
 - (optionnal) [Vapoursynth Editor](https://bitbucket.org/mystery_keeper/vapoursynth-editor/downloads/)
 
-have python, ffmpeg and vspipe (vapoursynth) in the path
+Python, ffmpeg and vspipe (vapoursynth) should be in the PATH
 
-install vapoursynth plugins:
-- For windows:
-  1. unzip the content of dependecies/Win/vapoursynth_dep.zip to you vapoursynth plugin folder
-  2. unzip the content of dependecies/Win/python_dep.zip to you python site-package   
+Install vapoursynth plugins:
+- For Windows:
+  1. Unzip the content of dependecies/Win/vapoursynth_dep.zip to your vapoursynth plugin folder
+  2. Unzip the content of dependecies/Win/python_dep.zip to your python site-packages folder   
 - For Linux:
   - install [Vapoursynth-plugins](https://github.com/darealshinji/vapoursynth-plugins) (or use my containerized version of pythoCR)
 
@@ -46,17 +46,19 @@ usage: PythoCR [-h] [--version] [-c CONFIG] [-l language] [-wd folder]
                [--sub-format format] [--mode mode] [--vpy vpy_file]
                [--threads number] [--auto-same-sub-threshold number]
                [--same-sub-threshold number] [--no-spellcheck] [-t] [-d]
+               [--tesseract-path path to tesseract binary]
+               [--vapoursynth-path path to vspipe binary]
                path [path ...]
 
-Process a previously filtered video and extract subtitles as srt. Args that
-start with '--' (eg. --version) can also be set in a config file (specified
-via -c). Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for
-details, see syntax at https://goo.gl/R74nmi). If an arg is specified in more
-than one place, then commandline values override config file values which
-override defaults.
+Filters a video and extracts subtitles as srt or ass. Args that start with
+'--' (eg. --version) can also be set in a config file (specified via -c).
+Config file syntax allows: key=value, flag=true, stuff=[a,b,c] (for details,
+see syntax at https://goo.gl/R74nmi). If an arg is specified in more than one
+place, then commandline values override config file values which override
+defaults.
 
 positional arguments:
-  path                  path to a filtered video
+  path                  path to a video
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -72,16 +74,16 @@ optional arguments:
                         Directory where I will put all my released stuff
                         (default ./output)
   --log-level level     Set the logging level (default INFO)
-  --ass-style style     Ass style to use if sub-format is ass (default:
+  --ass-style style     ASS style to use if sub-format is ass (default:
                         Verdana 60)
   -rr path to regex-replace json, --regex-replace path to regex-replace json
                         List of regex/replace for automatic correction
   -hcr char,replace, --heuristic-char-replace char,replace
                         List of char/replace for heuristic correction
-  --sub-format format   Set the outputed subtitles format (default srt)
+  --sub-format format   Set the outputed subtitles format (default: srt)
   --mode mode           Set the processing mode. "filter" to only start the
                         filtering jobs, "ocr" to process already filtered
-                        videos, "full" for both. (default full)
+                        videos, "full" for both. (default: full)
   --vpy vpy_file        vapoursynth file to use for filtering (required for
                         "filter only" and "full" modes
   --threads number      Number of threads the script will use (default:
@@ -92,13 +94,17 @@ optional arguments:
   --same-sub-threshold number
                         Percentage of comparison to assert that two lines of
                         subtitles are the same (default: 80%)
-  --no-spellcheck       Desactivate the function which tries to replace
+  --no-spellcheck       Deactivate the function which tries to replace
                         allegedly bad characters using spellcheck (it will
                         make the "heurist_char_replace" option of the
                         userconfig useless)
   -t, --timid           Activate timid mode (it will ask for user input when
                         some corrections are not automatically approved)
   -d, --delay           Delay correction after every video is processed
+  --tesseract-path path to tesseract binary
+                        The path to call tesseract (default: tesseract)
+  --vapoursynth-path path to vspipe binary
+                        The path to call vapoursynth (default: vspipe)
 ```
 
 So to process the video /myVideos/vid01.mp4, the command would be `python3 pythoCR.py -c <myconfig> --vpy <myvpy> /myVideos/vid01.mp4`
