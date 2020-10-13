@@ -9,6 +9,7 @@ import shlex
 import shutil
 import subprocess
 import pdb
+import math
 from colorama import init, Fore, Style
 import difflib
 from itertools import product
@@ -140,11 +141,27 @@ def new_ocr_image(arg_tuple):
     return text, (scene[0], scene[1])
 
 
+def truncateDecimalNumber(number, decimals=0):
+    """
+    Returns a value truncated to a specific number of decimal places.
+    https://kodify.net/python/math/truncate-decimals/
+    """
+    if not isinstance(decimals, int):
+        raise TypeError("decimal places must be an integer.")
+    elif decimals < 0:
+        raise ValueError("decimal places has to be 0 or more.")
+    elif decimals == 0:
+        return math.trunc(number)
+
+    factor = 10.0 ** decimals
+    return math.trunc(number * factor) / factor
+
+
 def sec_to_time(secs):
     hours = secs / 3600
     minutes = (secs % 3600) / 60
-    secs = secs % 60
-    return "%02d:%02d:%05.2f" % (hours, minutes, secs)
+    secs = truncateDecimalNumber(secs % 60, 3) # Truncate the decimal number, no rounding to avoid time issues (like for time plan) 
+    return "%02d:%02d:%06.3f" % (hours, minutes, secs) # Get always 2 digits before the comma and 3 digits after the comma
 
 
 def convert_to_srt(sub_data, mp4_path):
