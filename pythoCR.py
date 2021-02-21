@@ -160,8 +160,8 @@ def truncateDecimalNumber(number, decimals=0):
 def sec_to_time(secs):
     hours = secs / 3600
     minutes = (secs % 3600) / 60
-    secs = truncateDecimalNumber(secs % 60, 3) # Truncate the decimal number, no rounding to avoid time issues (like for time plan) 
-    return "%02d:%02d:%06.3f" % (hours, minutes, secs) # Get always 2 digits before the comma and 3 digits after the comma
+    secs = truncateDecimalNumber(secs % 60, 2) # Truncate the decimal number, no rounding to avoid time issues (like for time plan) 
+    return "%02d:%02d:%05.2f" % (hours, minutes, secs) # Get always 2 digits before the comma and 2 digits after the comma
 
 
 def convert_to_srt(sub_data, mp4_path):
